@@ -1,3 +1,5 @@
 logs/
 .env
 *.log
+backups/*
+!backups/.gitkeep
