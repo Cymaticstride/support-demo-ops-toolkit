@@ -50,10 +50,36 @@ fi
 
 echo
 
-echo "========== 5. 最近日志（web） =========="
+echo "========== 5. web 容器内 5000 端口检查 =========="
+WEB_CID="$($COMPOSE_CMD ps -q web || true)"
+
+if [[ -z "$WEB_CID" ]]; then
+  echo "[WARN] 未找到 web 容器"
+else
+  if docker inspect -f '{{.State.Running}}' "$WEB_CID" 2>/dev/null | grep -q true; then
+    $COMPOSE_CMD exec -T web python - <<'PY'
+import socket
+
+s = socket.socket()
+s.settimeout(2)
+code = s.connect_ex(("127.0.0.1", 5000))
+
+if code == 0:
+    print("[OK] web 容器内 127.0.0.1:5000 正在监听")
+else:
+    print(f"[WARN] web 容器内 127.0.0.1:5000 未监听，connect_ex={code}")
+PY
+  else
+    echo "[WARN] web 容器当前未运行，无法执行容器内端口检查"
+  fi
+fi
+
+echo
+
+echo "========== 6. 最近日志（web） =========="
 $COMPOSE_CMD logs --tail=20 web || true
 
 echo
 
-echo "========== 6. 最近日志（nginx） =========="
+echo "========== 7. 最近日志（nginx） =========="
 $COMPOSE_CMD logs --tail=20 nginx || true
